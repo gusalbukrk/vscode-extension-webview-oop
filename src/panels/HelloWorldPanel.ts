@@ -9,6 +9,7 @@ export default class HelloWorldPanel {
     this._panel = panel;
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
     this._panel.webview.html = this._getWebviewContent();
+    this._setWebviewMessageListener(this._panel.webview);
   }
 
   public static render() {
@@ -19,7 +20,9 @@ export default class HelloWorldPanel {
         'hello-world', // viewType
         'Hello World Title',
         vscode.ViewColumn.One,
-        {},
+        {
+          enableScripts: true,
+        },
       );
 
       HelloWorldPanel.currentPanel = new HelloWorldPanel(panel);
@@ -46,11 +49,35 @@ export default class HelloWorldPanel {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Hello World!</title>
-        </head>
-        <body>
+          </head>
+          <body>
           <h1>Hello World!</h1>
+          <script>
+            const vscode = acquireVsCodeApi();
+            vscode.postMessage({
+              command: 'hello',
+              text: 'Hello from the webview!'
+            });
+          </script>
         </body>
       </html>
     `;
+  }
+
+  private _setWebviewMessageListener(webview: vscode.Webview) {
+    webview.onDidReceiveMessage(
+      (message: any) => {
+        const command = message.command;
+        const text = message.text;
+
+        switch (command) {
+          case "hello":
+            vscode.window.showInformationMessage(text);
+            return;
+        }
+      },
+      undefined,
+      this._disposables
+    );
   }
 }
